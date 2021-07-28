@@ -49,7 +49,7 @@ export default function Notes() {
     }
   };
 
-  const editNote = (values) => {
+  const editNote = (values, event) => {
     setopeUpdatemodal(false)
     var arr = [];
     const searchIndex = values.noteId
@@ -57,6 +57,8 @@ export default function Notes() {
     notes.map((item, index) => { arr.push(item) })
     setNotes(arr)
     localStorage.setItem("notes", JSON.stringify(arr));
+    event.resetForm()
+
   };
 
   const searchitem = (e) => {
