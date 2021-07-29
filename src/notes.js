@@ -11,9 +11,7 @@ import { InputAdornment, Grid, TextField } from "@material-ui/core";
 
 export default function Notes() {
   const [notes, setNotes] = useState([]);
-  const [oldaData, setoldaData] = useState();
   const [noteData, setnoteData] = useState({ title: "", desc: "", noteId: "" });
-  // const [formikValue, setformikValue] = useState({});
   const [openModal, setopenModal] = useState(false);
   const [opeUpdatemodal, setopeUpdatemodal] = useState(false);
 
@@ -22,7 +20,6 @@ export default function Notes() {
   function getNotes() {
     var storednotes = JSON.parse(localStorage.getItem("notes")) || [];
     setNotes(storednotes);
-    setoldaData(storednotes);
   }
 
   const addNote = (values, event) => {
@@ -63,7 +60,8 @@ export default function Notes() {
 
   const searchitem = (e) => {
     const searchValue = e.target.value;
-    const filteredCountries = oldaData.filter((note) => {
+    var storednotes = JSON.parse(localStorage.getItem("notes")) || [];
+    const filteredCountries = storednotes.filter((note) => {
       return (
         note.title.toLowerCase().indexOf(searchValue.toLowerCase()) !== -1
       );
