@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Modal, ModalBody, ModalFooter } from 'reactstrap';
 import { Formik, Form } from 'formik';
 import { Button } from "@material-ui/core"

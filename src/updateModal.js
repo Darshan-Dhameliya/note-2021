@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Modal, ModalBody, ModalFooter } from 'reactstrap';
 import { Formik, Form } from 'formik';
 import { Button } from "@material-ui/core"
@@ -19,7 +19,7 @@ export default function UpdateModal({ upadteNote, opeUpdatemodal, setopeUpdatemo
                     touched,
                     handleBlur
                 }) => (
-                    <Form Form >
+                    <Form>
                         <Modal isOpen={opeUpdatemodal} toggle={() => setopeUpdatemodal(false)}>
                             <ModalBody>
                                 Title
