@@ -1,48 +1,144 @@
 /* eslint-disable no-restricted-globals */
-var CACHE_NAME = 'pwa-task-manager';
-var urlsToCache = [
-  '/',
-];
 
-// Install a service worker
-self.addEventListener('install', event => {
-  // Perform install steps
+   
+/* eslint no-var:0, no-console:0 */
+// thanks Jake! https://github.com/jakearchibald/simple-serviceworker-tutorial/blob/gh-pages/sw.js
+var currentCache = 'pwa-notes-app'
+
+// Chrome's currently missing some useful cache methods,
+// this polyfill adds them.
+polyfillCache()
+
+// Here comes the install event!
+// This only happens once, when the browser sees this
+// version of the ServiceWorker for the first time.
+self.addEventListener('install', function onServiceWorkerInstall(event) {
+  // console.log('install event', event)
+  // We pass a promise to event.waitUntil to signal how
+  // long install takes, and if it failed
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(function(cache) {
-        console.log("urlsToCache",urlsToCache)
-        return cache.addAll(urlsToCache);
-      })
-  );
-});
+    // We open a cache…
+    caches.open(currentCache).then(function addResourceToCache(cache) {
+      return cache.addAll([
+        './',
+        'favicon.png',
+      ])
+    })
+  )
+})
 
-// Cache and return requests
-self.addEventListener('fetch', event => {
+// The fetch event happens for the page request with the
+// ServiceWorker's scope, and any request made within that
+// page
+self.addEventListener('fetch', function onServiceWorkerFetch(event) {
+  // console.log('fetch event', event)
+  // Calling event.respondWith means we're in charge
+  // of providing the response. We pass in a promise
+  // that resolves with a response object
   event.respondWith(
-    caches.match(event.request)
-      .then(function(response) {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
-  );
-});
+    // First we look if we can get the (maybe updated)
+    // resource from the network
+    fetch(event.request).then(function updateCacheAndReturnNetworkResponse(networkResponse) {
+      // console.log('fetch from network for ' + event.request.url + ' successfull, updating cache')
+      caches.open(currentCache).then(function addToCache(cache) {
+        return cache.add(event.request)
+      })
+      return networkResponse
+    }).catch(function lookupCachedResponse(reason) {
+      // On failure, look up in the Cache for the requested resource
+      // console.log('fetch from network for ' + event.request.url + ' failed:', reason)
+      return caches.match(event.request).then(function returnCachedResponse(cachedResponse) {
+        return cachedResponse
+      })
+    })
+  )
+})
 
-// Update a service worker
-self.addEventListener('activate', event => {
-  var cacheWhitelist = ['pwa-task-manager'];
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
+
+
+function polyfillCache() {
+  /* eslint-disable */
+  if (!Cache.prototype.add) {
+    Cache.prototype.add = function add(request) {
+      return this.addAll([request])
+    }
+  }
+
+  if (!Cache.prototype.addAll) {
+    Cache.prototype.addAll = function addAll(requests) {
+      var cache = this
+
+      // Since DOMExceptions are not constructable:
+      function NetworkError(message) {
+        this.name = 'NetworkError'
+        this.code = 19
+        this.message = message
+      }
+      NetworkError.prototype = Object.create(Error.prototype)
+
+      return Promise.resolve().then(function() {
+        if (arguments.length < 1) throw new TypeError()
+
+        // Simulate sequence<(Request or USVString)> binding:
+        var sequence = []
+
+        requests = requests.map(function(request) {
+          if (request instanceof Request) {
+            return request
+          }
+          else {
+            return String(request) // may throw TypeError
           }
         })
-      );
-    })
-  );
-});
+
+        return Promise.all(
+          requests.map(function(request) {
+            if (typeof request === 'string') {
+              request = new Request(request)
+            }
+
+            var scheme = new URL(request.url).protocol
+
+            if (scheme !== 'http:' && scheme !== 'https:') {
+              throw new NetworkError('Invalid scheme')
+            }
+
+            return fetch(request.clone())
+          })
+        )
+      }).then(function(responses) {
+        // TODO: check that requests don't overwrite one another
+        // (don't think this is possible to polyfill due to opaque responses)
+        return Promise.all(
+          responses.map(function(response, i) {
+            return cache.put(requests[i], response)
+          })
+        )
+      }).then(function() {
+        return undefined
+      })
+    }
+  }
+
+  if (!CacheStorage.prototype.match) {
+    // This is probably vulnerable to race conditions (removing caches etc)
+    CacheStorage.prototype.match = function match(request, opts) {
+      var caches = this
+
+      return this.keys().then(function(cacheNames) {
+        var match
+
+        return cacheNames.reduce(function(chain, cacheName) {
+          return chain.then(function() {
+            return match || caches.open(cacheName).then(function(cache) {
+              return cache.match(request, opts)
+            }).then(function(response) {
+              match = response
+              return match
+            })
+          })
+        }, Promise.resolve())
+      })
+    }
+  }
+}

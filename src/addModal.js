@@ -6,7 +6,6 @@ import { Button } from "@material-ui/core"
 
 export default function AddModal({ addNote, openModal, setopenModal }) {
     return (
-        <>
             <Formik
                 initialValues={{ title: '', desc: '' }}
                 onSubmit={addNote}
@@ -42,6 +41,6 @@ export default function AddModal({ addNote, openModal, setopenModal }) {
                     </Form>
                 )}
             </Formik>
-        </>
+
     )
 }

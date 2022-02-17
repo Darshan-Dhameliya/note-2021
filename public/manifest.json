@@ -9,8 +9,9 @@
     },
     {
         "src": "/apple-touch-icon.png",
-        "sizes": "384x384",
-        "type": "image/png"
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "maskable"
     }
 ],
   "start_url": ".",
